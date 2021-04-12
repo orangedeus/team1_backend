@@ -10,7 +10,7 @@ router.post('/', function(req, res) {
     let video = req.files.upload_file;
     video.mv('./videos/' + video.name, function(err) {
         if (err) {
-            return res.status(500).send(err);
+            return res.status(500);
         }
     });
     res.send('Uploaded!');

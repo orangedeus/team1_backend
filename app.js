@@ -15,6 +15,9 @@ var loginRouter = require('./routes/login');
 var instRouter = require('./routes/instrumentation');
 var genRouter = require('./routes/generate');
 var routesRouter = require('./routes/routes');
+var instanceRouter = require('./routes/instance');
+var nukeRouter = require('./routes/nuke');
+var surveyRouter = require('./routes/survey');
 
 var app = express();
 
@@ -40,6 +43,8 @@ app.use('/login', loginRouter);
 app.use('/instrumentation', instRouter);
 app.use('/generate', genRouter);
 app.use('/routes', routesRouter);
+app.use('/instance', instanceRouter);
+app.use('/survey', surveyRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

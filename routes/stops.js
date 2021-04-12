@@ -77,7 +77,7 @@ router.get('/test', function(req, res, next) {
 
 router.get('/', function(req, res, next) {
     console.log(req.params)
-    db.multi('SELECT * FROM stops;').then(data => {
+    db.multi('SELECT * FROM complete_stops;').then(data => {
         console.log(data[0]);
         res.json(data[0]);
     })
@@ -90,7 +90,7 @@ router.get('/', function(req, res, next) {
 router.get('/:route', function (req, res, next) {
     console.log(req.params)
     route = req.params.route;
-    db.many(`SELECT * FROM stops WHERE route = '${route}'`).then(data => {
+    db.many(`SELECT * FROM complete_stops WHERE route = '${route}'`).then(data => {
         res.json(data);
     }).catch(e => {
         res.send(e);
@@ -103,10 +103,20 @@ router.post('/update', function(req, res, next) {
         res.send('Success!');
     })
     .catch(error => {
-        console.log(error)
+        console.log(error);
     });
 });
 
+router.post('/annotate', function(req, res, next) {
+    body = req.body;
+    db.any(`INSERT INTO annotations VALUES (${body.annotated}, ${body.boarding}, ${body.alighting}, ${body.following}, '${body.url}');`).then(data => {
+        res.send('Success!');
+    })
+    .catch(error => {
+        res.send(error);
+        console.log(error);
+    });
+});
 
 router.post('/insert', function(req, res, next) {
     body = req.body;
@@ -121,3 +131,4 @@ router.post('/insert', function(req, res, next) {
 });
 
 module.exports = router;
+//SELECT stops.location, stops.people, stops.url, stops.route, CASE WHEN a.annotated is NULL then 0 ELSE a.annotated END, CASE WHEN a.boarding is NULL then 0 ELSE a.boarding END, CASE WHEN a.alighting is NULL then 0 ELSE a.alighting END, a.following FROM stops FULL OUTER JOIN (SELECT url, AVG(annotated) AS annotated, AVG(boarding) as boarding, AVG(alighting) as alighting, BOOL_AND(following) as following FROM annotations GROUP BY url) a ON a.url = stops.url;
