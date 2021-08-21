@@ -3,7 +3,7 @@ var router = express.Router();
 var db = require('../db');
 
 router.get('/', function(req, res, next) {
-    db.many('SELECT id as value, route as label FROM ROUTES;').then(data => {
+    db.manyOrNone('SELECT id as value, route as label FROM ROUTES;').then(data => {
         console.log(data);
         res.send(data);
     })

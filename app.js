@@ -4,8 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var fileUpload = require('express-fileupload');
+var busboy = require('connect-busboy');
 
-
+var processv2Router = require('./routes/processv2');
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var stopsRouter = require('./routes/stops');
@@ -18,6 +19,9 @@ var routesRouter = require('./routes/routes');
 var instanceRouter = require('./routes/instance');
 var nukeRouter = require('./routes/nuke');
 var surveyRouter = require('./routes/survey');
+var backupsRouter = require('./routes/backups');
+var dashboardRouter = require('./routes/dashboard');
+var dataRouter = require('./routes/data');
 
 var app = express();
 
@@ -28,12 +32,13 @@ const cors = require('cors');
 app.use(cors({ origin: true }));
 app.use(logger('dev'));
 app.use(express.json());
+app.use('/v2/process', busboy(), processv2Router);
 app.use(fileUpload());
 app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/videos', express.static(__dirname + '/videos'));
-app.use('/process', express.static(__dirname + '/process'));
+app.use('/watch', express.static(__dirname + '/process'));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/stops', stopsRouter);
@@ -44,7 +49,11 @@ app.use('/instrumentation', instRouter);
 app.use('/generate', genRouter);
 app.use('/routes', routesRouter);
 app.use('/instance', instanceRouter);
+app.use('/nuke', nukeRouter);
 app.use('/survey', surveyRouter);
+app.use('/backups', backupsRouter);
+app.use('/dashboard', dashboardRouter);
+app.use('/data', dataRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

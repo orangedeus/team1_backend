@@ -21,7 +21,7 @@ router.get('/check', function(req, res, next) {
       if (err) {
           res.send("Error");
       } else {
-          res.send(data)
+          res.send(data.Reservations[0].Instances[0])
       }
   });
 });

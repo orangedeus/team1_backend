@@ -34,6 +34,8 @@ router.post('/', function(req, res, next) {
         } else {
             res.send({user: 1, admin: 0})
         }
+    }).catch((e) => {
+        res.send("error")
     })
 });
 

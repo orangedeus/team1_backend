@@ -21,7 +21,7 @@ router.post('/', function(req, res, next) {
                     surveyed = 0
                 }
                 console.log('already accessed')
-                if ((now - data.accessed) < 14400000) {
+                if ((now - data.accessed) < 28800000) {
                     res.send({code: body.code, user: 1, admin: 0, surveyed: surveyed});
                 } else {
                     res.send({code: body.code, user: 0, admin: 0, surveyed: surveyed});
