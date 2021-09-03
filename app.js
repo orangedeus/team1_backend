@@ -22,6 +22,7 @@ var surveyRouter = require('./routes/survey');
 var backupsRouter = require('./routes/backups');
 var dashboardRouter = require('./routes/dashboard');
 var dataRouter = require('./routes/data');
+var batchRouter = require('./routes/batch');
 
 var app = express();
 
@@ -54,6 +55,7 @@ app.use('/survey', surveyRouter);
 app.use('/backups', backupsRouter);
 app.use('/dashboard', dashboardRouter);
 app.use('/data', dataRouter);
+app.use('/batch', batchRouter);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

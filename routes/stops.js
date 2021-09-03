@@ -18,7 +18,6 @@ var backup = (backup) => {
                             console.log(e);
                         });
                     }
-                    
                 });
             }).catch(e => {
                 console.log(e);
@@ -210,6 +209,24 @@ router.get('/reduced', function(req, res, next) {
         res.send(error)
         console.log(error)
     });
+});
+
+router.post('/reduced', function(req, res, next) {
+    body = req.body;
+    code = body.code;
+    console.log(body);
+    db.one(`SELECT * FROM codes WHERE code = '${code}';`).then(data => {
+        batch = parseInt(data.batch);
+        threshold = parseInt(data.threshold);
+        route = data.route;
+        // console.log(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} and route = '${route}' and temp_number < ${threshold} ORDER BY url;`)
+        db.manyOrNone(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = '${batch}'`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`).then(data => {
+            let newData = reduce(data)
+            res.json(newData);
+        })
+    }).catch((e) => {
+        res.send("error")
+    })
 });
 
 router.get('/:route', function (req, res, next) {
