@@ -270,7 +270,7 @@ router.post('/annotate', function(req, res, next) {
 
 router.post('/insert', function(req, res, next) {
     body = req.body;
-    db.any(`INSERT INTO stops(location, people, url, duration, route) values (point(${body.location.x}, ${body.location.y}), ${body.people}, '${body.url}', ${body.duration}, '${body.route}');`)
+    db.any(`INSERT INTO stops(location, people, url, duration, route, batch) values (point(${body.location.x}, ${body.location.y}), ${body.people}, '${body.url}', ${body.duration}, '${body.route}', ${body.batch});`)
     .then(() => {
         db.one(`SELECT count(*) FROM stops;`).then(data => {
             stopsCount = data.count;

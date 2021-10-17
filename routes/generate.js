@@ -9,6 +9,7 @@ router.post('/', function(req, res, next) {
     console.log(body);
     number = parseInt(body.number);
     threshold = parseInt(body.threshold);
+    batch = parseInt(body.batch);
     route = body.route;
     db.one(`SELECT * FROM codes WHERE code = '${code}';`).then(data => {
         console.log(data);
@@ -17,24 +18,19 @@ router.post('/', function(req, res, next) {
             for (i = 0; i < number; i++) {
                 insert_codes.push(nanoid(12));
             };
-            db.one(`SELECT * FROM variables WHERE var_name = 'current';`).then((data) => {
-                batch = parseInt(data.var_value)
-                db.tx(t => {
-                    const queries = insert_codes.map(code => {
-                        return t.none(`INSERT INTO codes(code, route, batch, threshold) VALUES ('${code}', '${route}', ${batch}, ${threshold});`);
-                    });
-                    return t.batch(queries);
-                }).then(() => {
-                    res.send(
-                        {
-                            inserted_codes: insert_codes
-                        }
-                    );
-                }).catch(e => {
-                    console.log(e);
+            db.tx(t => {
+                const queries = insert_codes.map(code => {
+                    return t.none(`INSERT INTO codes(code, route, batch, threshold) VALUES ('${code}', '${route}', ${batch}, ${threshold});`);
                 });
-            }).catch(() => {
-                res.send('error');
+                return t.batch(queries);
+            }).then(() => {
+                res.send(
+                    {
+                        inserted_codes: insert_codes
+                    }
+                );
+            }).catch(e => {
+                console.log(e);
             });
         } else {
             res.send({user: 1, admin: 0})

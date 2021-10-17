@@ -59,6 +59,20 @@ router.get('/', function(req, res, next) {
     res.send('data route reached');
 });
 
+router.post('/histogram', function(req, res, next) {
+    body = req.body;
+    batch = body.batch;
+    route = body.route;
+    console.log(body);
+    console.log(`SELECT CASE WHEN temp_number IS null THEN 0 else temp_number END AS annotation_count, count(CASE WHEN temp_number IS null THEN 0 else temp_number END) AS number FROM complete_stops ${batch != 0 || route != 'All' ? 'WHERE' : ''} ${batch == 0 ? '' : `batch = ${batch}`} ${batch != 0 && route != 'All' ? 'AND' : ''} ${route == 'All' ? '' : `route = '${route}'`} GROUP BY temp_number ORDER BY annotation_count;`);
+    db.manyOrNone(`SELECT CASE WHEN temp_number IS null THEN 0 else temp_number END AS annotation_count, count(CASE WHEN temp_number IS null THEN 0 else temp_number END) AS number FROM complete_stops ${batch != 0 || route != 'All' ? 'WHERE' : ''} ${batch == 0 ? '' : `batch = ${batch}`} ${batch != 0 && route != 'All' ? 'AND' : ''} ${route == 'All' ? '' : `route = '${route}'`} GROUP BY temp_number ORDER BY annotation_count;`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e);
+        res.send('error');
+    });
+});
+
 router.get('/survey', function(req, res, next) {
     db.manyOrNone(`SELECT * FROM survey WHERE code IN (SELECT * FROM valid);`).then((data) => {
         res.send(data);
