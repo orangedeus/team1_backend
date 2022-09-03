@@ -59,11 +59,10 @@ router.get('/', function(req, res, next) {
     res.send('data route reached');
 });
 
-router.post('/histogram', function(req, res, next) {
-    body = req.body;
-    batch = body.batch;
-    route = body.route;
-    console.log(body);
+router.get('/histogram', function(req, res, next) {
+
+
+    const {route, batch} = req.query;
     console.log(`SELECT CASE WHEN temp_number IS null THEN 0 else temp_number END AS annotation_count, count(CASE WHEN temp_number IS null THEN 0 else temp_number END) AS number FROM complete_stops ${batch != 0 || route != 'All' ? 'WHERE' : ''} ${batch == 0 ? '' : `batch = ${batch}`} ${batch != 0 && route != 'All' ? 'AND' : ''} ${route == 'All' ? '' : `route = '${route}'`} GROUP BY temp_number ORDER BY annotation_count;`);
     db.manyOrNone(`SELECT CASE WHEN temp_number IS null THEN 0 else temp_number END AS annotation_count, count(CASE WHEN temp_number IS null THEN 0 else temp_number END) AS number FROM complete_stops ${batch != 0 || route != 'All' ? 'WHERE' : ''} ${batch == 0 ? '' : `batch = ${batch}`} ${batch != 0 && route != 'All' ? 'AND' : ''} ${route == 'All' ? '' : `route = '${route}'`} GROUP BY temp_number ORDER BY annotation_count;`).then((data) => {
         res.send(data);
@@ -74,7 +73,26 @@ router.post('/histogram', function(req, res, next) {
 });
 
 router.get('/survey', function(req, res, next) {
-    db.manyOrNone(`SELECT * FROM survey WHERE code IN (SELECT * FROM valid);`).then((data) => {
+    db.manyOrNone(`SELECT survey.code, survey.name, survey.age, survey.education, codes.route, codes.batch, codes.threshold FROM survey LEFT OUTER JOIN codes ON survey.code = codes.code WHERE survey.code IN (SELECT * FROM valid);`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e)
+    })
+});
+
+router.get('/survey/:route', function(req, res, next) {
+    route = req.params.route;
+    db.manyOrNone(`SELECT survey.code, survey.name, survey.age, survey.education, codes.route, codes.batch, codes.threshold FROM survey LEFT OUTER JOIN codes ON survey.code = codes.code WHERE survey.code IN (SELECT * FROM valid) and route = '${route}';`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e)
+    })
+});
+
+router.get('/survey/:route/:batch', function(req, res, next) {
+    route = req.params.route;
+    batch = req.params.batch;
+    db.manyOrNone(`SELECT survey.code, survey.name, survey.age, survey.education, codes.route, codes.batch, codes.threshold FROM survey LEFT OUTER JOIN codes ON survey.code = codes.code WHERE survey.code IN (SELECT * FROM valid) and route = '${route}' and batch = ${batch};`).then((data) => {
         res.send(data);
     }).catch((e) => {
         console.log(e)
@@ -82,7 +100,26 @@ router.get('/survey', function(req, res, next) {
 });
 
 router.get('/stops', function(req, res, next) {
-    db.manyOrNone(`SELECT location[0] as lat, location[1] as long, people, annotated, boarding, alighting, url, route, duration FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates);`).then((data) => {
+    db.manyOrNone(`SELECT location[0] as lat, location[1] as long, people, annotated, boarding, alighting, url, route, batch, duration FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates);`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e)
+    })
+});
+
+router.get('/stops/:route', function(req, res, next) {
+    route = req.params.route;
+    db.manyOrNone(`SELECT location[0] as lat, location[1] as long, people, annotated, boarding, alighting, url, route, batch, duration FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) and route = '${route}';`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e)
+    })
+});
+
+router.get('/stops/:route/:batch', function(req, res, next) {
+    route = req.params.route;
+    batch = req.params.batch;
+    db.manyOrNone(`SELECT location[0] as lat, location[1] as long, people, annotated, boarding, alighting, url, route, batch, duration FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) and route = '${route}' and batch = ${batch};`).then((data) => {
         res.send(data);
     }).catch((e) => {
         console.log(e)
@@ -93,7 +130,26 @@ router.get('/videos', function(req, res, next) {
     db.manyOrNone(`SELECT DISTINCT ON (filename) * FROM tracking WHERE status = 'Done!';`).then((data) => {
         res.send(data);
     }).catch((e) => {
-        console.log(e)
+        console.log(e);
+    })
+});
+
+router.get('/videos/:route', function(req, res, next) {
+    route = req.params.route;
+    db.manyOrNone(`SELECT DISTINCT ON (filename) * FROM tracking WHERE status = 'Done!' and route = '${route}';`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e);
+    })
+});
+
+router.get('/videos/:route/:batch', function(req, res, next) {
+    route = req.params.route;
+    batch = req.params.batch;
+    db.manyOrNone(`SELECT DISTINCT ON (filename) * FROM tracking WHERE status = 'Done!' and route = '${route}' and batch = ${batch};`).then((data) => {
+        res.send(data);
+    }).catch((e) => {
+        console.log(e);
     })
 });
 
@@ -146,12 +202,32 @@ router.get('/falsepositives', function (req, res, next) {
 });
 
 router.get('/total', function(req, res, next) {
-    db.manyOrNone(`select sum(stops.duration), count(location), annotations.code from stops left outer join annotations on stops.url = annotations.url where code in (select * from valid) group by code;`).then(data => {
+    db.manyOrNone(`select sum(stops.duration), count(location), annotations.code, stops.route, stops.batch from stops left outer join annotations on stops.url = annotations.url where code in (select * from valid) group by code, stops.route, stops.batch;`).then(data => {
         res.send(data);
     }).catch(e => {
         console.log(e);
     });
 });
+
+router.get('/total/:route', function(req, res, next) {
+    route = req.params.route;
+    db.manyOrNone(`select sum(stops.duration), count(location), annotations.code, stops.route, stops.batch from stops left outer join annotations on stops.url = annotations.url where code in (select * from valid) and stops.route = '${route}' group by code, stops.route, stops.batch;`).then(data => {
+        res.send(data);
+    }).catch(e => {
+        console.log(e);
+    });
+});
+
+router.get('/total/:route/:batch', function(req, res, next) {
+    route = req.params.route;
+    batch = req.params.batch;
+    db.manyOrNone(`select sum(stops.duration), count(location), annotations.code, stops.route, stops.batch from stops left outer join annotations on stops.url = annotations.url where code in (select * from valid) and stops.route = '${route}' and stops.batch = ${batch} group by code, stops.route, stops.batch;`).then(data => {
+        res.send(data);
+    }).catch(e => {
+        console.log(e);
+    });
+});
+
 
 router.get('/:parameter', function(req, res, next) {
     let parameter = req.params.parameter;

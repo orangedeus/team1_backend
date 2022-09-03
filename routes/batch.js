@@ -5,7 +5,7 @@ var db = require('../db');
 var fs = require('fs-extra');
 
 /* GET users listing. */
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
     db.manyOrNone(`SELECT DISTINCT ON (batch) batch FROM stops;`).then((data) => {
         res.send(data);
     }).catch((e) => {
@@ -14,7 +14,7 @@ router.get('/', function(req, res, next) {
     });
 });
 
-router.get('/current', function(req, res, next) {
+router.get('/current', function (req, res, next) {
     db.one(`SELECT * FROM variables WHERE var_name = 'current';`).then((data) => {
         response = {}
         response[`${data.var_name}`] = parseInt(data.var_value)
@@ -24,7 +24,7 @@ router.get('/current', function(req, res, next) {
     });
 });
 
-router.post('/set', function(req, res, next) {
+router.post('/set', function (req, res, next) {
     body = req.body;
     db.any(`UPDATE variables set var_value = '${body.new_batch}' WHERE var_name = 'current';`).then(() => {
         res.send('ok');
@@ -35,13 +35,11 @@ router.post('/set', function(req, res, next) {
 });
 
 
-router.post('/retire', function(req, res, next) {
+router.post('/retire', function (req, res, next) {
     body = req.body;
     route = body.route;
     batch = body.batch;
-    console.log(body);
     db.manyOrNone(`SELECT * FROM complete_stops WHERE batch = ${batch};`).then((data) => {
-        console.log(data);
         db.any(`UPDATE batches SET retired = 1 WHERE route = '${route}' and batch = ${batch};`).then(() => {
             res.send('ok');
         }).catch(() => {
@@ -57,25 +55,31 @@ router.post('/retire', function(req, res, next) {
     });
 });
 
-router.post('/delete', function(req, res, next) {
+router.post('/delete', function (req, res, next) {
     body = req.body;
-    console.log(body);
-    db.manyOrNone(`SELECT * FROM stops WHERE batch = ${body.batch};`).then((data) => {
-        console.log(data);
-        res.send('ok')
-        // for (const i of data) {
-        //     fs.removeSync(`${process.cwd()}/${i.url}`);
-        // }
-        // db.any(`DELETE FROM stops WHERE batch = ${body.batch};`).then(() => {
-        //     res.send('ok');
-        // })
-    }).catch(() => {
-        res.send('error');
-    });
-}); 
+    const { route, batch } = body;
+    console.log(`[DELETING] DELETING route: ${route}, batch: ${batch}`);
+    if (route && batch) {
+        db.manyOrNone(`SELECT * FROM stops WHERE route = '${route}' and batch = ${batch};`).then((data) => {
+            for (const i of data) {
+                fs.removeSync(`${process.cwd()}/videos/${i.url}`);
+                db.any(`DELETE FROM annotations WHERE url = '${i.url}';`);
+            }
+            db.any(`DELETE FROM stops WHERE route = '${route}' and batch = ${batch};`).then(() => {
+                db.any(`DELETE FROM tracking WHERE route = '${route}' and batch = ${batch};`).then(() => {
+                    db.any(`DELETE from batches WHERE route = '${route}' and batch = ${batch};`).then(() => {
+                        res.send('ok');
+                    });
+                });
+            });
+        }).catch(() => {
+            res.send('error');
+        });
 
+    }
+});
 
-router.post('/route', function(req, res, next) {
+router.post('/route', function (req, res, next) {
     body = req.body;
     route = body.route;
     db.manyOrNone(`SELECT batch FROM batches WHERE route = '${route}' AND retired = 0;`).then((data) => {
@@ -85,7 +89,7 @@ router.post('/route', function(req, res, next) {
     });
 });
 
-router.post('/route2', function(req, res, next) {
+router.post('/route2', function (req, res, next) {
     body = req.body;
     route = body.route;
     db.manyOrNone(`SELECT batch FROM batches WHERE route = '${route}' AND retired = 0 ORDER BY batch DESC;`).then((data) => {
@@ -95,18 +99,23 @@ router.post('/route2', function(req, res, next) {
     });
 });
 
-router.post('/max', function(req, res, next) {
+router.post('/max', function (req, res, next) {
     body = req.body;
     route = body.route;
     db.oneOrNone(`SELECT MAX(batch) FROM batches WHERE route = '${route}' GROUP BY route;`).then((data) => {
-        res.send(data);
+        console.log(route, data);
+        if (data == null) {
+            res.send({ max: 0 });
+        } else {
+            res.send(data);
+        }
     }).catch(e => {
         console.log(e);
         res.send('error');
     });
 });
 
-router.post('/insert', function(req, res, next) {
+router.post('/insert', function (req, res, next) {
     body = req.body;
     route = body.route;
     batch = body.batch;

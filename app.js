@@ -5,6 +5,7 @@ var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 var fileUpload = require('express-fileupload');
 var busboy = require('connect-busboy');
+var multer = require('multer')
 
 var processv2Router = require('./routes/processv2');
 var indexRouter = require('./routes/index');
@@ -33,6 +34,7 @@ const cors = require('cors');
 app.use(cors({ origin: true }));
 app.use(logger('dev'));
 app.use(express.json());
+app.use('/upload', busboy(), uploadRouter);
 app.use('/v2/process', busboy(), processv2Router);
 app.use(fileUpload());
 app.use(express.urlencoded({ extended: false }));
@@ -43,7 +45,6 @@ app.use('/watch', express.static(__dirname + '/process'));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 app.use('/stops', stopsRouter);
-app.use('/upload', uploadRouter);
 app.use('/process', processRouter);
 app.use('/login', loginRouter);
 app.use('/instrumentation', instRouter);

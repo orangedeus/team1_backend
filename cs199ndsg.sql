@@ -5,9 +5,15 @@
 -- Dumped from database version 11.12
 -- Dumped by pg_dump version 11.12
 
+-- Replace 'YOUR_USERNAME' to the created user
 
+-- The original database with the following user and database
 
-CREATE TABLE public.annotations (
+-- CREATE USER cs199ndsg WITH ENCRYPTED PASSWORD 'ndsg';
+
+-- CREATE DATABASE cs199ndsg;
+
+CREATE TABLE annotations (
     annotated integer,
     boarding integer,
     alighting integer,
@@ -17,54 +23,26 @@ CREATE TABLE public.annotations (
 );
 
 
-ALTER TABLE public.annotations OWNER TO cs199ndsg;
-
---
--- Name: auto10_annotations; Type: TABLE; Schema: public; Owner: cs199ndsg
---
-
-CREATE TABLE public.auto10_annotations (
-    annotated integer,
-    boarding integer,
-    alighting integer,
-    following boolean,
-    url character varying,
-    code character varying
-);
-
-
-ALTER TABLE public.auto10_annotations OWNER TO cs199ndsg;
-
---
--- Name: auto10_routes; Type: TABLE; Schema: public; Owner: cs199ndsg
---
-
-CREATE TABLE public.auto10_routes (
-    id integer,
-    route character varying
-);
-
-
-ALTER TABLE public.auto10_routes OWNER TO cs199ndsg;
+ALTER TABLE annotations OWNER TO YOUR_USERNAME;
 
 
 --
--- Name: backups; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: backups; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.backups (
+CREATE TABLE backups (
     id integer NOT NULL,
     backup character varying
 );
 
 
-ALTER TABLE public.backups OWNER TO cs199ndsg;
+ALTER TABLE backups OWNER TO YOUR_USERNAME;
 
 --
--- Name: backups_id_seq; Type: SEQUENCE; Schema: public; Owner: cs199ndsg
+-- Name: backups_id_seq; Type: SEQUENCE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE SEQUENCE public.backups_id_seq
+CREATE SEQUENCE backups_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -73,34 +51,34 @@ CREATE SEQUENCE public.backups_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.backups_id_seq OWNER TO cs199ndsg;
+ALTER TABLE backups_id_seq OWNER TO YOUR_USERNAME;
 
 --
--- Name: backups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cs199ndsg
+-- Name: backups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: YOUR_USERNAME
 --
 
-ALTER SEQUENCE public.backups_id_seq OWNED BY public.backups.id;
+ALTER SEQUENCE backups_id_seq OWNED BY backups.id;
 
 
 --
--- Name: batches; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: batches; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.batches (
+CREATE TABLE batches (
     batch integer,
     route character varying,
     retired integer DEFAULT 0
 );
 
 
-ALTER TABLE public.batches OWNER TO cs199ndsg;
+ALTER TABLE batches OWNER TO YOUR_USERNAME;
 
 
 --
--- Name: codes; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: codes; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.codes (
+CREATE TABLE codes (
     code character varying NOT NULL,
     admin boolean DEFAULT false,
     accessed timestamp without time zone,
@@ -112,13 +90,13 @@ CREATE TABLE public.codes (
     CONSTRAINT codes_threshold_check CHECK ((threshold > 0))
 );
 
-ALTER TABLE public.codes OWNER TO cs199ndsg;
+ALTER TABLE codes OWNER TO YOUR_USERNAME;
 
 --
--- Name: stops; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: stops; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.stops (
+CREATE TABLE stops (
     location point,
     people integer,
     url character varying,
@@ -132,13 +110,13 @@ CREATE TABLE public.stops (
 );
 
 
-ALTER TABLE public.stops OWNER TO cs199ndsg;
+ALTER TABLE stops OWNER TO YOUR_USERNAME;
 
 --
--- Name: complete_stops; Type: VIEW; Schema: public; Owner: cs199ndsg
+-- Name: complete_stops; Type: VIEW; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE VIEW public.complete_stops AS
+CREATE VIEW complete_stops AS
  SELECT stops.location,
     stops.people,
     stops.url,
@@ -163,24 +141,24 @@ CREATE VIEW public.complete_stops AS
             WHEN (a.temp_number IS NULL) THEN (0)::numeric
             ELSE (a.temp_number)::numeric
         END AS temp_number
-   FROM (public.stops
+   FROM (stops
      FULL JOIN ( SELECT annotations.url,
             avg(annotations.annotated) AS annotated,
             avg(annotations.boarding) AS boarding,
             avg(annotations.alighting) AS alighting,
             count(*) AS temp_number,
             bool_and(annotations.following) AS following
-           FROM public.annotations
+           FROM annotations
           GROUP BY annotations.url) a ON (((a.url)::text = (stops.url)::text)));
 
 
-ALTER TABLE public.complete_stops OWNER TO cs199ndsg;
+ALTER TABLE complete_stops OWNER TO YOUR_USERNAME;
 
 --
--- Name: tracking; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: tracking; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.tracking (
+CREATE TABLE tracking (
     id integer NOT NULL,
     filename character varying,
     status character varying,
@@ -192,35 +170,35 @@ CREATE TABLE public.tracking (
 );
 
 
-ALTER TABLE public.tracking OWNER TO cs199ndsg;
+ALTER TABLE tracking OWNER TO YOUR_USERNAME;
 
 --
--- Name: dashboard; Type: VIEW; Schema: public; Owner: cs199ndsg
+-- Name: dashboard; Type: VIEW; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE VIEW public.dashboard AS
+CREATE VIEW dashboard AS
  SELECT a.stops,
     b.codes,
     c.annotations,
     d.uploaded_videos
    FROM (((( SELECT count(stops.*) AS stops
-           FROM public.stops) a
+           FROM stops) a
      FULL JOIN ( SELECT count(codes.*) AS codes
-           FROM public.codes) b ON (true))
+           FROM codes) b ON (true))
      FULL JOIN ( SELECT count(annotations.*) AS annotations
-           FROM public.annotations) c ON (true))
+           FROM annotations) c ON (true))
      FULL JOIN ( SELECT count(DISTINCT tracking.filename) AS uploaded_videos
-           FROM public.tracking
+           FROM tracking
           WHERE ((tracking.status)::text = 'Done!'::text)) d ON (true));
 
 
-ALTER TABLE public.dashboard OWNER TO cs199ndsg;
+ALTER TABLE dashboard OWNER TO YOUR_USERNAME;
 
 --
--- Name: instrumentation; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: instrumentation; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.instrumentation (
+CREATE TABLE instrumentation (
     code character varying,
     file character varying,
     "time" numeric,
@@ -228,25 +206,25 @@ CREATE TABLE public.instrumentation (
 );
 
 
-ALTER TABLE public.instrumentation OWNER TO cs199ndsg;
+ALTER TABLE instrumentation OWNER TO YOUR_USERNAME;
 
 --
--- Name: routes; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: routes; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.routes (
+CREATE TABLE routes (
     id integer NOT NULL,
     route character varying
 );
 
 
-ALTER TABLE public.routes OWNER TO cs199ndsg;
+ALTER TABLE routes OWNER TO YOUR_USERNAME;
 
 --
--- Name: routes_id_seq; Type: SEQUENCE; Schema: public; Owner: cs199ndsg
+-- Name: routes_id_seq; Type: SEQUENCE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE SEQUENCE public.routes_id_seq
+CREATE SEQUENCE routes_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -255,20 +233,20 @@ CREATE SEQUENCE public.routes_id_seq
     CACHE 1;
 
 
-ALTER TABLE public.routes_id_seq OWNER TO cs199ndsg;
+ALTER TABLE routes_id_seq OWNER TO YOUR_USERNAME;
 
 --
--- Name: routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: cs199ndsg
+-- Name: routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: YOUR_USERNAME
 --
 
-ALTER SEQUENCE public.routes_id_seq OWNED BY public.routes.id;
+ALTER SEQUENCE routes_id_seq OWNED BY routes.id;
 
 
 --
--- Name: survey; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: survey; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
-CREATE TABLE public.survey (
+CREATE TABLE survey (
     code character varying,
     name character varying,
     age integer,
@@ -277,10 +255,10 @@ CREATE TABLE public.survey (
 );
 
 
-ALTER TABLE public.survey OWNER TO cs199ndsg;
+ALTER TABLE survey OWNER TO YOUR_USERNAME;
 
 --
--- Name: test; Type: TABLE; Schema: public; Owner: cs199ndsg
+-- Name: test; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
 --

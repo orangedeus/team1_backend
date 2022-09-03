@@ -138,17 +138,31 @@ router.get('/duplicates', (req, res, next) => {
 router.post('/filtered', function (req, res, next) {
     body = req.body;
 
-    route = body.route;
-    filter = body.filter;
-
-    console.log(route, filter);
+    const {route, filter, time} = body
 
     let filteredData = [];
     let followingData = [];
     let response = {};
 
+    let additionalQuery = ""
+    if (time) {
+        switch (time) {
+            case 'morning':
+                additionalQuery = "time::time between '00:00:00' and '08:00:00'"
+                break
+            case 'noon':
+                additionalQuery = "time::time between '08:00:00' and '16:00:00'"
+                break
+            case 'evening':
+                additionalQuery = "time::time between '16:00:00' and '23:59:59'"
+                break
+            default:
+                additionalQuery = ""
+        }
+    }
+
     if (route == 'All') {
-        db.manyOrNone(`SELECT * FROM complete_stops;`).then(data => {
+        db.manyOrNone(`SELECT * FROM complete_stops${additionalQuery !== "" ? ` WHERE ${additionalQuery}` : additionalQuery};`).then(data => {
             for (const key of Object.keys(filter)) {
                 let tempData = JSON.parse(JSON.stringify(data))
                 if (filter[key]) {
@@ -172,7 +186,7 @@ router.post('/filtered', function (req, res, next) {
             res.send(e);
         });
     } else {
-        db.manyOrNone(`SELECT * FROM complete_stops WHERE route = '${route}';`).then(data => {
+        db.manyOrNone(`SELECT * FROM complete_stops WHERE route = '${route}'${additionalQuery !== "" ? ` AND ${additionalQuery}` : additionalQuery};`).then(data => {
             for (const key of Object.keys(filter)) {
                 let tempData = JSON.parse(JSON.stringify(data))
                 if (filter[key]) {
@@ -220,12 +234,13 @@ router.post('/reduced', function(req, res, next) {
         threshold = parseInt(data.threshold);
         route = data.route;
         // console.log(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} and route = '${route}' and temp_number < ${threshold} ORDER BY url;`)
-        db.manyOrNone(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = '${batch}'`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`).then(data => {
+        console.log(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`)
+        db.manyOrNone(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`).then(data => {
             let newData = reduce(data)
             res.json(newData);
         })
     }).catch((e) => {
-        res.send("error")
+        res.send([])
     })
 });
 
@@ -270,25 +285,26 @@ router.post('/annotate', function(req, res, next) {
 
 router.post('/insert', function(req, res, next) {
     body = req.body;
-    db.any(`INSERT INTO stops(location, people, url, duration, route, batch) values (point(${body.location.x}, ${body.location.y}), ${body.people}, '${body.url}', ${body.duration}, '${body.route}', ${body.batch});`)
-    .then(() => {
-        db.one(`SELECT count(*) FROM stops;`).then(data => {
-            stopsCount = data.count;
-            backupNumber = Math.floor(stopsCount / 200);
-            if (backupNumber >= 1) {
-                db.one(`SELECT * FROM backups WHERE backup = 'auto${backupNumber}'`).then(data => {
-                    console.log(data);
-                }).catch(e => {
-                    backup(`auto${backupNumber}`);
-                });
-            }
+    const {location, people, url, duration, route, batch, source_file, time} = body
+    if (time) {
+        db.any(`INSERT INTO stops(location, people, url, duration, route, batch, source_file, time) values (point(${location.x}, ${location.y}), ${people}, '${url}', ${duration}, '${route}', ${batch}, '${source_file}', TO_TIMESTAMP('${time}', 'YYYY:MM:DD HH24:MI:SS'));`)
+        .then(() => {
+            res.send("Success!");
+        })
+        .catch(error => {
+            res.send(error)
+            console.log(error)
         });
-        res.send("Success!");
-    })
-    .catch(error => {
-        res.send(error)
-        console.log(error)
-    });
+    } else {
+        db.any(`INSERT INTO stops(location, people, url, duration, route, batch, source_file, time) values (point(${location.x}, ${location.y}), ${people}, '${url}', ${duration}, '${route}', ${batch}, '${source_file}');`)
+        .then(() => {
+            res.send("Success!");
+        })
+        .catch(error => {
+            res.send(error)
+            console.log(error)
+        });
+    }
 });
 
 router.get('/check/:code&:file', (req, res, next) => {
@@ -306,11 +322,55 @@ router.get('/check/:code&:file', (req, res, next) => {
     })
 });
 
+router.get('/file/:filename', (req, res, next) => {
+    console.log(req.params, req.query)
+    const { filename } = req.params;
+    const {route, batch} = req.query;
+
+    console.log(filename, route, batch)
+
+    db.manyOrNone(`SELECT url, duration, time, location FROM stops WHERE source_file = '${filename}' and route = '${route}' and batch = ${batch} ORDER BY time ASC;`).then((data) => {
+        res.send(data)
+    }).catch((e) => {
+        res.send(e)
+    })
+})
+
 router.get('/test/testing', (req, res, next) => {
     db.oneOrNone(`SELECT * FROM backups WHERE backup = 'auto3';`).then(data => {
         res.send('yo');
     });
 });
+
+
+async function deleteCascade(stop) {
+    console.log(stop)
+    try {
+        await db.any(`DELETE FROM stops WHERE url = '${stop.url}' and route = '${stop.route}' and batch = ${stop.batch};`);
+        await db.any(`DELETE FROM annotations WHERE url = '${stop.url}' and route = '${stop.route}' and batch = ${stop.batch};`);
+        fs.removeSync(`${process.cwd()}/${stop.url}`);
+    } catch (e) {
+        return e
+    }
+} 
+
+router.post('/delete', (req, res, next) => {
+    const { source_file, batch, route, tracking } = req.body
+    console.log(source_file, route, batch, tracking)
+    db.manyOrNone(`SELECT * FROM stops WHERE source_file = '${source_file}' and route = '${route}' and batch = ${batch};`).then(async (data) => {
+        let error
+        for (let i of data) {
+            error = await deleteCascade(i)
+        }
+        await db.any(`DELETE FROM tracking WHERE id = ${tracking};`)
+        console.log(error)
+        if (error) {
+            res.send(error)
+        } else {
+            res.send('Success!')
+        }
+    })
+})
 
 module.exports = router;
 //SELECT stops.location, stops.people, stops.url, stops.route, CASE WHEN a.annotated is NULL then 0 ELSE a.annotated END, CASE WHEN a.boarding is NULL then 0 ELSE a.boarding END, CASE WHEN a.alighting is NULL then 0 ELSE a.alighting END, a.following FROM stops FULL OUTER JOIN (SELECT url, AVG(annotated) AS annotated, AVG(boarding) as boarding, AVG(alighting) as alighting, BOOL_AND(following) as following FROM annotations GROUP BY url) a ON a.url = stops.url;
