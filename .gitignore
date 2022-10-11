@@ -8,4 +8,4 @@
 !*.js
 !*.json
 !*.sql
-!*.sample
+!sample.env.local
