@@ -10,7 +10,7 @@ var backup = (backup) => {
     db.any(`CREATE TABLE ${backup}_stops AS TABLE stops;`).then(() => {
         db.any(`CREATE TABLE ${backup}_annotations AS TABLE annotations;`).then(() => {
             db.any(`CREATE TABLE ${backup}_routes AS TABLE routes;`).then(() => {
-                fs.copy(`${process.cwd()}/videos`, `${process.cwd()}/${backup}_videos`, {errorOnExist: true}, (err) => {
+                fs.copy(`${process.cwd()}/videos`, `${process.cwd()}/${backup}_videos`, { errorOnExist: true }, (err) => {
                     if (err) {
                         console.log(err)
                     } else {
@@ -66,7 +66,7 @@ const clean = (stops, parameter) => {
         let new_x = curr_num_x / curr_den
         let new_y = curr_num_y / curr_den
         let new_people = curr_den / gathered_n
-        let new_stop = 
+        let new_stop =
         {
             parameter: parameter,
             location: {
@@ -104,41 +104,21 @@ const reduce = (stops) => {
     return temp;
 }
 
-router.get('/', function(req, res, next) {
+router.get('/', function (req, res, next) {
     console.log(req.params)
-    db.manyOrNone('SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates);').then(data => {
+    db.manyOrNone('SELECT * FROM complete_stops;').then(data => {
         res.json(data);
     })
-    .catch(error => {
-        res.send(error)
-        console.log(error)
-    });
-});
-
-router.post('/duplicates', (req, res, next) => {
-    body = req.body;
-    console.log(body);
-    main_copy = body.main;
-    duplicate = body.duplicate;
-    db.any(`INSERT INTO duplicates VALUES ('${main_copy}', '${duplicate}');`).then(() => {
-        res.send('ok');
-    }).catch(e => {
-        res.send(e);
-    });
-});
-
-router.get('/duplicates', (req, res, next) => {
-    db.manyOrNone('SELECT * FROM duplicates;').then((data) => {
-        res.send(data);
-    }).catch(e => {
-        res.send(e);
-    })
+        .catch(error => {
+            res.send(error)
+            console.log(error)
+        });
 });
 
 router.post('/filtered', function (req, res, next) {
     body = req.body;
 
-    const {route, filter, time} = body
+    const { route, filter, time } = body
 
     let filteredData = [];
     let followingData = [];
@@ -213,19 +193,19 @@ router.post('/filtered', function (req, res, next) {
     }
 });
 
-router.get('/reduced', function(req, res, next) {
-    db.manyOrNone('SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ORDER BY url;').then(data => {
+router.get('/reduced', function (req, res, next) {
+    db.manyOrNone('SELECT * FROM complete_stops ORDER BY url;').then(data => {
         // shuffleStops(data);
         let newData = reduce(data)
         res.json(newData);
     })
-    .catch(error => {
-        res.send(error)
-        console.log(error)
-    });
+        .catch(error => {
+            res.send(error)
+            console.log(error)
+        });
 });
 
-router.post('/reduced', function(req, res, next) {
+router.post('/reduced', function (req, res, next) {
     body = req.body;
     code = body.code;
     console.log(body);
@@ -233,9 +213,9 @@ router.post('/reduced', function(req, res, next) {
         batch = parseInt(data.batch);
         threshold = parseInt(data.threshold);
         route = data.route;
-        // console.log(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} and route = '${route}' and temp_number < ${threshold} ORDER BY url;`)
-        console.log(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`)
-        db.manyOrNone(`SELECT * FROM complete_stops WHERE url NOT IN (SELECT duplicate FROM duplicates) ${batch == 0 ? '' : `and batch = ${batch}`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`).then(data => {
+        // console.log(`SELECT * FROM complete_stops ${batch == 0 ? '' : `and batch = ${batch}`} and route = '${route}' and temp_number < ${threshold} ORDER BY url;`)
+        console.log(`SELECT * FROM complete_stops ${batch == 0 ? '' : `and batch = ${batch}`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`)
+        db.manyOrNone(`SELECT * FROM complete_stops ${batch == 0 ? '' : `and batch = ${batch}`} ${route == 'All' ? '' : `and route = '${route}'`} and temp_number < ${threshold} ORDER BY url;`).then(data => {
             let newData = reduce(data)
             res.json(newData);
         })
@@ -257,17 +237,17 @@ router.get('/:route', function (req, res, next) {
 
 
 
-router.post('/update', function(req, res, next) {
+router.post('/update', function (req, res, next) {
     body = req.body;
     db.any(`UPDATE stops SET annotated = ${body.annotated}, boarding = ${body.boarding}, alighting = ${body.alighting} WHERE location ~= point(${body.location.x}, ${body.location.y});`).then(data => {
         res.send('Success!');
     })
-    .catch(error => {
-        console.log(error);
-    });
+        .catch(error => {
+            console.log(error);
+        });
 });
 
-router.post('/annotate', function(req, res, next) {
+router.post('/annotate', function (req, res, next) {
     body = req.body;
     if (body.code == 'Cs198ndsg!') { // for testing
         console.log('ignoring!');
@@ -277,33 +257,33 @@ router.post('/annotate', function(req, res, next) {
     db.any(`INSERT INTO annotations VALUES (${body.annotated}, ${body.boarding}, ${body.alighting}, ${body.following}, '${body.url}', '${body.code}') ON CONFLICT (code, url) DO UPDATE SET annotated = ${body.annotated}, boarding = ${body.boarding}, alighting = ${body.alighting}, following = ${body.following} WHERE (annotations.url = '${body.url}' AND annotations.code = '${body.code}');`).then(data => {
         res.send('Success!');
     })
-    .catch(error => {
-        res.send(error);
-        console.log(error);
-    });
+        .catch(error => {
+            res.send(error);
+            console.log(error);
+        });
 });
 
-router.post('/insert', function(req, res, next) {
+router.post('/insert', function (req, res, next) {
     body = req.body;
-    const {location, people, url, duration, route, batch, source_file, time} = body
+    const { location, people, url, duration, route, batch, source_file, time } = body
     if (time) {
         db.any(`INSERT INTO stops(location, people, url, duration, route, batch, source_file, time) values (point(${location.x}, ${location.y}), ${people}, '${url}', ${duration}, '${route}', ${batch}, '${source_file}', TO_TIMESTAMP('${time}', 'YYYY:MM:DD HH24:MI:SS'));`)
-        .then(() => {
-            res.send("Success!");
-        })
-        .catch(error => {
-            res.send(error)
-            console.log(error)
-        });
+            .then(() => {
+                res.send("Success!");
+            })
+            .catch(error => {
+                res.send(error)
+                console.log(error)
+            });
     } else {
         db.any(`INSERT INTO stops(location, people, url, duration, route, batch, source_file, time) values (point(${location.x}, ${location.y}), ${people}, '${url}', ${duration}, '${route}', ${batch}, '${source_file}');`)
-        .then(() => {
-            res.send("Success!");
-        })
-        .catch(error => {
-            res.send(error)
-            console.log(error)
-        });
+            .then(() => {
+                res.send("Success!");
+            })
+            .catch(error => {
+                res.send(error)
+                console.log(error)
+            });
     }
 });
 
@@ -312,12 +292,12 @@ router.get('/check/:code&:file', (req, res, next) => {
     file = req.params.file
     console.log(code, file);
     db.one(`SELECT * FROM annotations WHERE code = '${code}' AND url = '${file}';`).then(() => {
-        res.send({status: true});
+        res.send({ status: true });
     }).catch(e => {
         if (code == 'Cs198ndsg!') {
-            res.send({status: true})
+            res.send({ status: true })
         } else {
-            res.send({status: false});
+            res.send({ status: false });
         }
     })
 });
@@ -325,7 +305,7 @@ router.get('/check/:code&:file', (req, res, next) => {
 router.get('/file/:filename', (req, res, next) => {
     console.log(req.params, req.query)
     const { filename } = req.params;
-    const {route, batch} = req.query;
+    const { route, batch } = req.query;
 
     console.log(filename, route, batch)
 
@@ -352,7 +332,7 @@ async function deleteCascade(stop) {
     } catch (e) {
         return e
     }
-} 
+}
 
 router.post('/delete', (req, res, next) => {
     const { source_file, batch, route, tracking } = req.body

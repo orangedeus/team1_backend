@@ -11,8 +11,6 @@
 
 -- CREATE USER cs199ndsg WITH ENCRYPTED PASSWORD 'ndsg';
 
--- CREATE DATABASE cs199ndsg;
-
 CREATE TABLE annotations (
     annotated integer,
     boarding integer,
@@ -31,33 +29,12 @@ ALTER TABLE annotations OWNER TO YOUR_USERNAME;
 --
 
 CREATE TABLE backups (
-    id integer NOT NULL,
+    id SERIAL,
     backup character varying
 );
 
 
 ALTER TABLE backups OWNER TO YOUR_USERNAME;
-
---
--- Name: backups_id_seq; Type: SEQUENCE; Schema: public; Owner: YOUR_USERNAME
---
-
-CREATE SEQUENCE backups_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE backups_id_seq OWNER TO YOUR_USERNAME;
-
---
--- Name: backups_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: YOUR_USERNAME
---
-
-ALTER SEQUENCE backups_id_seq OWNED BY backups.id;
 
 
 --
@@ -159,7 +136,7 @@ ALTER TABLE complete_stops OWNER TO YOUR_USERNAME;
 --
 
 CREATE TABLE tracking (
-    id integer NOT NULL,
+    id SERIAL,
     filename character varying,
     status character varying,
     route character varying,
@@ -213,33 +190,12 @@ ALTER TABLE instrumentation OWNER TO YOUR_USERNAME;
 --
 
 CREATE TABLE routes (
-    id integer NOT NULL,
+    id SERIAL,
     route character varying
 );
 
 
 ALTER TABLE routes OWNER TO YOUR_USERNAME;
-
---
--- Name: routes_id_seq; Type: SEQUENCE; Schema: public; Owner: YOUR_USERNAME
---
-
-CREATE SEQUENCE routes_id_seq
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-
-ALTER TABLE routes_id_seq OWNER TO YOUR_USERNAME;
-
---
--- Name: routes_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: YOUR_USERNAME
---
-
-ALTER SEQUENCE routes_id_seq OWNED BY routes.id;
 
 
 --
@@ -261,7 +217,4 @@ ALTER TABLE survey OWNER TO YOUR_USERNAME;
 -- Name: test; Type: TABLE; Schema: public; Owner: YOUR_USERNAME
 --
 
---
--- PostgreSQL database dump complete
---
 
